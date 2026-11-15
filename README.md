@@ -1,3 +1,13 @@
+# v1.0.1 — Add/Edit buttons enabled state fix (2026-11-15)
+
+**Fix:** `canManageLookups` previously evaluated non-reactive `api` first. Before Supabase initialized, Vue could cache this computed getter as false with no reactive dependencies. As a result, **Add Component**, **Manage Types**, **Bulk Import**, **Paste from Excel**, and **Edit Table** remained disabled despite a green Connected banner and `Enable Add / Edit / Save / Import = On` in WeWeb.
+
+**Resolution:** Added reactive `apiReady` state, toggled during connection initialization, and used it as a dependency in the computed permission check. This is a **frontend-only update**. Supabase Project URL and Publishable Key remain configurable through WeWeb element properties. No authentication or RLS logic was added. Database schema and inventory data are untouched.
+
+After updating the GitHub repository, **refresh/reload the coded element in WeWeb** and confirm your WeWeb preview uses the latest GitHub commit. Re-entering Supabase credentials or changing your database is not required.
+
+---
+
 # nVent EU CRA Hub — Component Inventory
 
 **Version 1.0.0 | WeWeb Vue 3 coded element | Standalone GitHub-importable source**

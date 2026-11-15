@@ -128,3 +128,16 @@ test('lookup management is explicitly allowlisted, rejecting other table writes'
   await api.addLookup('component_types','New type');await api.renameLookup('connectivity_types',3,'Bluetooth');
   await assert.rejects(()=>api.addLookup('products','Unsafe write'),/Unsupported lookup/);
 });
+
+// WeWeb runtime regression: computed getters must not start with non-reactive `api`
+// or they cache a false permission before references have loaded.
+test('WeWeb editing buttons reactivate after API initializes (reactive readiness regression)',async()=>{
+  const {readFile} = await import('node:fs/promises');
+  const vue=await readFile(new URL('../src/wwElement.vue',import.meta.url),'utf8');
+  assert.match(vue,/apiReady=ref\(false\)/);
+  assert.match(vue,/apiReady\.value=true/);
+  assert.match(vue,/apiReady\.value=false/);
+  assert.match(vue,/canManageLookups=computed\(\(\)=>apiReady\.value/);
+  assert.doesNotMatch(vue,/canManageLookups=computed\(\(\)=>!!api/);
+  assert.match(vue,/:disabled="!canWrite \|\| busy" @click="openAdd"/);
+});

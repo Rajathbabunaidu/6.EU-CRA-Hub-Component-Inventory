@@ -184,7 +184,7 @@ const editingEnabled=computed(()=>props.content?.enableEditing!==false);
 const deletionEnabled=computed(()=>props.content?.enableDeletion!==false);
 const defaultSize=computed(()=>[10,25,50,100].includes(Number(props.content?.defaultPageSize))?Number(props.content.defaultPageSize):10);
 const db=ref(Object.fromEntries(Object.keys(TABLES).map(x=>[x,[]])));
-const productsReady=ref(false),recordsReady=ref(false),loadingRefs=ref(false),loadingRecords=ref(false),busy=ref(false);
+const productsReady=ref(false),recordsReady=ref(false),loadingRefs=ref(false),loadingRecords=ref(false),busy=ref(false),apiReady=ref(false);
 const referenceErrors=ref([]),recordErrors=ref([]),recordsError=ref(''),notice=ref({text:'',kind:'ok'});
 const selectedProductId=ref(''),products=computed(()=>db.value.products||[]);
 const selectedProduct=computed(()=>products.value.find(p=>Number(p.id)===Number(selectedProductId.value))||null);
@@ -194,7 +194,7 @@ const rawComponents=ref([]),components=computed(()=>hydrateComponents(rawCompone
 const activeStatus=computed(()=>db.value.user_statuses.find(s=>norm(s.status_name)==='active'));
 const archiveId=computed(()=>db.value.user_statuses.find(s=>norm(s.status_name)==='archived')?.id||null);
 const activeCount=computed(()=>components.value.filter(x=>norm(x.status_name)==='active').length);
-const canManageLookups=computed(()=>!!api && productsReady.value && !loadingRefs.value && !referenceErrors.value.length && editingEnabled.value && !busy.value);
+const canManageLookups=computed(()=>apiReady.value && productsReady.value && !loadingRefs.value && !referenceErrors.value.length && editingEnabled.value && !busy.value);
 const canWrite=computed(()=>canManageLookups.value && !!selectedProduct.value && recordsReady.value && !loadingRecords.value && !recordsError.value && !recordErrors.value.length);
 const search=ref(''),filterType=ref(''),filterStatus=ref(''),sortBy=ref('code'),pageSize=ref(10),page=ref(1);
 const filtered=computed(()=>filterSort(components.value,{search:search.value,typeId:filterType.value,statusId:filterStatus.value,sort:sortBy.value}));
@@ -229,11 +229,11 @@ let api=null,refsSerial=0,recordsSerial=0;
 
 async function refresh(){
   const token=++refsSerial; ++recordsSerial;
-  loadingRefs.value=true;productsReady.value=false;recordsReady.value=false;
+  loadingRefs.value=true;productsReady.value=false;recordsReady.value=false;apiReady.value=false;
   referenceErrors.value=[];recordErrors.value=[];recordsError.value='';rawComponents.value=[];
   if(!hasConfig.value){api=null;db.value=Object.fromEntries(Object.keys(TABLES).map(x=>[x,[]]));loadingRefs.value=false;return;}
-  try{api=createInventoryApi({url:url.value,key:key.value});}
-  catch(e){api=null;referenceErrors.value=[e.message];loadingRefs.value=false;return;}
+  try{api=createInventoryApi({url:url.value,key:key.value});apiReady.value=true;}
+  catch(e){api=null;apiReady.value=false;referenceErrors.value=[e.message];loadingRefs.value=false;return;}
   const result=await api.loadReferences();if(token!==refsSerial)return;
   db.value={...db.value,...result.data};referenceErrors.value=result.errors;productsReady.value=!result.criticalFailed;loadingRefs.value=false;
   if(!productsReady.value){note('Product Catalog could not be loaded. Fix connection/access before continuing.','error');return;}
